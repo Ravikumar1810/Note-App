@@ -2,12 +2,19 @@ const express  =  require("express");
 const app  =  express();
 require("dotenv").config();
 const auth  =  require("./routes/authRoutes");
-const connectDB =  require("./config/db");
+const note = require("./routes/notesRoutes")
 const  PORT  = process.env.PORT||8000
-
+const cookieParser = require("cookie-parser");
+const cors  =  require("cors");
+const connectDB =  require("./config/db");
 connectDB();
-app.use(express.json());
 
+app.use(cors({
+    origin:'http://localhost:5173',
+     credentials: true,
+}));
+app.use(express.json());
+app.use(cookieParser());
 
 app.get('/', (req, res)=>{
     res.status(200).json({
@@ -17,7 +24,7 @@ app.get('/', (req, res)=>{
 })
 
 app.use('/api',  auth);
-
+app.use("/api", note);
 
 app.use((req, res, next)=>{
     const error = new Error("route not  found");
@@ -25,7 +32,7 @@ app.use((req, res, next)=>{
     next(error);
 })
 
-// global error  execution  
+  
 app.use((err, req, res, next)=>{
     res.status(err.status || 500).json({
       status:"error",

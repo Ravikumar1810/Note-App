@@ -19,7 +19,7 @@ const  emailverfication   = async (email , otp)=>{
          from :`NotesApp : ${process.env.APP_USER}`,
          to:email,        
         subject: "Your OTP Verification Code",
-        text: `Your One-Time Password  is: ${otp}. It expires in 10 minutes.`,
+        text: `Your One-Time Password  is: ${otp}. It expires in 5 minutes.`,
      }
      try
      {
