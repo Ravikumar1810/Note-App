@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+.auth-input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 6px;
+  background: #111827;
+  border: 1px solid #374151;
+  color: white;
+}
+
+.auth-input:focus {
+  outline: none;
+  border-color: #6366f1;
+}
+
+.auth-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 6px;
+  background: #6366f1;
+  color: white;
+}
+
+.auth-btn:hover {
+  background: #4f46e5;
+}
+
