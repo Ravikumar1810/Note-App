@@ -16,9 +16,7 @@ export const AuthProvider = ({ children }) => {
           setAccessToken(res.data.accessToken);
           setToken(res.data.accessToken);
           setUser(res.data.user || null);
-      } catch (err) {
-        setToken(null);
-        setUser(null);   
+      } catch (err) {  
       } finally {
         setLoading(false);
       }
