@@ -10,12 +10,13 @@ const connectDB =  require("./config/db");
 connectDB();
 
 app.use(cors({
-    origin:
-        "https://note-app-roan-five.vercel.app/",
+    origin: "https://note-app-roan-five.vercel.app",
     credentials: true,
 }));
 app.use(express.json());
 app.use(cookieParser());
+
+app.set("trust proxy", 1);
 
 app.get('/', (req, res)=>{
     res.status(200).json({
