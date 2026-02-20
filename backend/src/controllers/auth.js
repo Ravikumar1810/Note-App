@@ -341,7 +341,7 @@ return res.status(200).json({
 const  verifyToken = async (req , res)=>{
     try
     {
-        const  headertoken  =  req.cookies?.refreshtoken;
+        const headertoken = req.cookies?.refreshtoken;
         
   
         if(!headertoken){
