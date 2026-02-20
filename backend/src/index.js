@@ -10,7 +10,10 @@ const connectDB =  require("./config/db");
 connectDB();
 
 app.use(cors({
-    origin:'http://localhost:5173',
+    origin:[
+        "http://localhost:5173",
+        "https://note-app-roan-five.vercel.app/"
+    ],
      credentials: true,
 }));
 app.use(express.json());
