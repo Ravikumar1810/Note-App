@@ -68,106 +68,112 @@ const register = async (req, res) => {
 
 
 
-const  verifyOtp  =  async (req, res)=>{
-    try
-    {
-        const {email ,  enterotp} = req.body; 
-        if(!email ||  !enterotp)
-        {
-            return res.status(400).json({
-                success:false,
-                messsage:"Please add both  email and  otp "
-            });
-        }
+const verifyOtp = async (req, res) => {
+  try {
+    const { email, enterotp } = req.body;
 
-        const  user  =  await User.findOne({email});
-        if(!user)
-        {
-            return res.status(404).json({
-                success:false,
-                message:"user  not found"
-            });
-        }
- 
-        const  otpdoc  =  await OTP.findOne({userId:user._id});
-        if(!otpdoc)
-        {
-            return res.status(404).json({
-                success:false,
-                message:"OTP not found or expired. Please request a new OTP"
-            });      
-        }
-       
-         if (otpdoc.purpose === "signup" && user.isVerified) {
-                   return res.status(400).json({
-                      success: false,
-                  message: "User already verified"
-                 });
-             }
-    if(enterotp.toString() !== otpdoc.otp.toString()){
-        return res.status(400).json({
-            success:false,
-            message:"Invalid OTP"
-        });
+    if (!email || !enterotp) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and OTP are required",
+      });
     }
 
-    if(otpdoc.expiredAt < new Date()){
-        await OTP.deleteOne({userId:user._id});
-        return res.status(400).json({
-            success:false,
-            message:" OTP expired. Please request a new OTP."
-        })
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
     }
-        if(otpdoc.purpose == 'signup'){
 
-              user.isVerified = true
-
-        const accessToken  =  genrateaccessToken(user);
-        const refreshtoken = genraterefreshToken(user);
-             user.refreshtoken = refreshtoken;
-             await user.save();
-
-     await OTP.findOneAndDelete({userId:user._id});
-      
-
-                res.cookie("refreshtoken", refreshtoken,{
-                    httpOnly:true,
-                    secure:false,
-                  sameSite: "strict",
-                    maxAge:24*60*60*1000
-                })
-         return res.status(200).json({
-            success:true,
-            message:"User verified successfully",
-            accessToken
-         });
-        }
-
-    if(otpdoc.purpose == 'reset'){
-
-        await OTP.deleteOne({userId:user._id , purpose : 'rest'});
-
-        const resetToken = jwt.sign(
-            { userId: user._id, purpose: "reset" },
-            process.env.RESET_SECRET,
-            { expiresIn: "10m" }
-        );
-            }
-            return res.status(200).json({
-            success: true,
-            message: "OTP verified for password reset",
-            resetToken
-        });
-
-    }catch(err)
-    {
-        return res.status(500).json({
-            success:false,
-            message:'Internal server error',
-            error:err.message
-        });
+    const otpdoc = await OTP.findOne({ userId: user._id });
+    if (!otpdoc) {
+      return res.status(404).json({
+        success: false,
+        message: "OTP not found or expired",
+      });
     }
-}
+
+    if (otpdoc.otp.toString() !== enterotp.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid OTP",
+      });
+    }
+
+    if (otpdoc.expiredAt < new Date()) {
+      await OTP.deleteOne({ _id: otpdoc._id });
+      return res.status(400).json({
+        success: false,
+        message: "OTP expired",
+      });
+    }
+
+    //  SIGNUP FLOW
+    if (otpdoc.purpose === "signup") {
+      user.isVerified = true;
+
+      const accessToken = genrateaccessToken(user);
+      const refreshToken = genraterefreshToken(user);
+
+      user.refreshtoken = refreshToken;
+      await user.save();
+
+      await OTP.deleteOne({ _id: otpdoc._id });
+
+      const isProd = process.env.NODE_ENV === "production";
+
+        res.cookie("refreshtoken", refreshToken, {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: isProd ? "none" : "lax",
+        path: "/",
+        maxAge: 24 * 60 * 60 * 1000, //1 Day
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "OTP verified successfully",
+        accessToken,
+        user: {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+        },
+      })
+    }
+
+    //  RESET PASSWORD FLOW (THIS WAS BUGGY BEFORE)
+    if (otpdoc.purpose === "reset") {
+      await OTP.deleteOne({ _id: otpdoc._id });
+
+      const resetToken = jwt.sign(
+        { userId: user._id, purpose: "reset" },
+        process.env.RESET_PASS,
+        { expiresIn: "10m" }
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: "OTP verified for password reset",
+        resetToken,
+          user: {
+            id: user._id,
+            username: user.username,
+            email: user.email,
+          },
+      });
+    }
+
+  } catch (err) {
+    console.error("Verify OTP Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
 
 
 const  login   =  async (req, res)=>{
@@ -216,19 +222,26 @@ const  login   =  async (req, res)=>{
             });
         }
         const accessToken  =  genrateaccessToken(existinguser);
-        const refreshtoken =  genraterefreshToken(existinguser);
-          existinguser.refreshtoken = refreshtoken
+        const refreshToken =  genraterefreshToken(existinguser);
+          existinguser.refreshtoken = refreshToken
           await existinguser.save();
     
-            res.cookie("refreshtoken", refreshtoken, {
+            res.cookie("refreshtoken", refreshToken, {
                 httpOnly:true,
                 secure:false,
+                sameSite:"lax",
+                path:"/",
                 maxAge:24 * 60 * 60 * 1000 
             })
           return res.status(200).json({
             success:true,
             message:'logged in successfully',
-            accessToken
+            accessToken,
+            user:{
+                id:existinguser._id,
+                username:existinguser.username,
+                email:existinguser.email
+            }
           });
     }catch(err)
     {
@@ -306,7 +319,12 @@ await OTP.create({
 
 return res.status(200).json({
     success:true,
-    message:"resend  otp send  successfully"
+    message:"resend  otp send  successfully",
+    user: {
+        id: existuser._id,
+        username: existuser.username,
+        email: existuser.email,
+      },
 });
     }catch(err){
         return res.status(500).json({
@@ -323,7 +341,7 @@ return res.status(200).json({
 const  verifyToken = async (req , res)=>{
     try
     {
-        const  headertoken  =  req.cookies?.refreshtoken
+        const  headertoken  =  req.cookies?.refreshtoken;
         
   
         if(!headertoken){
@@ -333,7 +351,6 @@ const  verifyToken = async (req , res)=>{
             });
         }
 
-  
         const decode  = jwt.verify(headertoken , process.env.REFRESH_TOKEN);
      
          const user =  await User.findById(decode._id);
@@ -351,12 +368,15 @@ const  verifyToken = async (req , res)=>{
         })
     }
  const accessToken  = genrateaccessToken(user);
- return res.status(200).json({
-    success:true,
-    message:"access token genrated  successfully",
-    accessToken
- });
-
+    return res.status(200).json({
+      success: true,
+      accessToken,
+      user: {
+        _id: user._id,
+        email: user.email,
+        username: user.username,
+      }
+    });
     }catch(err){
         return res.status(500).json({
             success:false,
@@ -439,7 +459,7 @@ const resetpass = async (req, res) => {
       });
     }
 
-    const decoded = jwt.verify(resetToken, process.env.RESET_SECRET);
+    const decoded = jwt.verify(resetToken, process.env.RESET_PASS);
 
     if (decoded.purpose !== "reset") {
       return res.status(401).json({
@@ -462,7 +482,12 @@ const resetpass = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Password reset successfully. Please login."
+      message: "Password reset successfully. Please login.",
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email
+      }
     });
 
   } catch (err) {

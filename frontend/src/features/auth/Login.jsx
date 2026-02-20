@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { data, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,6 +17,7 @@ export default function Login() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -32,12 +33,15 @@ export default function Login() {
 
     try {
       const res = await loginUser(data);
+      console.log("Login successful:", res); // Debug log
 
       // 1️⃣ Save to auth context
       login({
         token: res.accessToken,
         user: res.user,
       });
+      console.log("token is: " , res.accessToken)
+      console.log("user is: " , res.user)
 
       // 2️⃣ Attach token to axios
       setAccessToken(res.accessToken);
@@ -45,7 +49,7 @@ export default function Login() {
       // 3️⃣ Redirect to dashboard
       navigate("/dashboard");
     } catch (err) {
-      setError(err);
+      setError(err?.response?.data?.message || "An error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -71,7 +75,7 @@ export default function Login() {
 
           {error && (
             <p className="text-red-400 text-sm mb-4 text-center">
-              {error}
+              {error?.message?.response?.data || "An error occurred. Please try again." }
             </p>
           )}
 
@@ -87,21 +91,30 @@ export default function Login() {
               </p>
             )}
 
-            <input
-              {...register("password")}
-              type="password"
-              className="auth-input mb-4"
-              placeholder="Password"
-            />
-            {errors.password && (
-              <p className="text-red-400 text-xs mb-4">
-                {errors.password.message}
-              </p>
-            )}
+            <div className="relative mb-4">
+                  <input
+                    {...register("password")}
+                    type={showPassword ? "text" : "password"}
+                    className="auth-input pr-16"
+                    placeholder="Password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-indigo-400 hover:underline focus:outline-none cursor-pointer"
+                  >
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="text-red-400 text-xs mb-4">
+                    {errors.password.message}
+                  </p>
+                )}
 
             <div className="text-right mb-6">
               <Link
-                to="/forgot-password"
+                to="/forgetpassword"
                 className="text-sm text-indigo-400 hover:underline"
               >
                 Forgot password?
@@ -119,7 +132,7 @@ export default function Login() {
 
           <p className="text-sm text-gray-400 text-center">
             Don’t have an account?{" "}
-            <Link to="/signup" className="text-indigo-400 hover:underline">
+            <Link to="/register" className="text-indigo-400 hover:underline">
               Sign up
             </Link>
           </p>

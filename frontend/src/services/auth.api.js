@@ -1,37 +1,54 @@
 import api from "./api";
+import publicApi from "./publicApi";
+
+// ---------- AUTH (PUBLIC) ----------
 
 // LOGIN
 export const loginUser = async (data) => {
-  const response = await api.post("/auth/login", data);
-  return response.data;
+  const res = await publicApi.post("/login", data);
+  return res.data;
 };
 
-// SIGNUP (SEND OTP)
+// SIGNUP
 export const signupUser = async (data) => {
-  const response = await api.post("/auth/signup", data);
-  return response.data;
+  const res = await publicApi.post("/register", data);
+  return res.data;
 };
 
-// VERIFY OTP
+// VERIFY OTP (signup + reset)
 export const verifySignupOtp = async (data) => {
-  const response = await api.post("/auth/verify-otp", data);
-  return response.data;
+  const res = await publicApi.post("/verify-otp", data);
+  return res.data;
 };
 
 // FORGOT PASSWORD
 export const forgotPassword = async (data) => {
-  const response = await api.post("/auth/forgot-password", data);
-  return response.data;
+  const res = await publicApi.post("/forgetpassword", data);
+  return res.data;
 };
 
-// RESET PASSWORD
-export const resetPassword = async (data) => {
-  const response = await api.post("/auth/reset-password", data);
-  return response.data;
+// RESEND SIGNUP OTP
+export const resendSignupOtp = async (data) => {
+  const res = await publicApi.post("/resendsignupotp", data);
+  return res.data;
 };
+
+// RESEND RESET OTP
+export const resendResetOtp = async (data) => {
+  const res = await publicApi.post("/resendResetotp", data);
+  return res.data;
+};
+
+// RESET PASSWORD (IMPORTANT)
+export const resetPassword = async (data) => {
+  const res = await publicApi.post("/resetpass", data);
+  return res.data;
+};
+
+// ---------- AUTH (PROTECTED) ----------
 
 // REFRESH TOKEN
 export const refreshToken = async () => {
-    const response = await api.post("/auth/refresh-token");
-    return response.data;
-}
+  const res = await api.post("/verifyToken");
+  return res.data;
+};

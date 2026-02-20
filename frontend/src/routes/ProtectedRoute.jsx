@@ -2,12 +2,14 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../app/AuthContext";
 
 export default function ProtectedRoute({ children }) {
-  const { accessToken } = useAuth();
+  const { accessToken, loading } = useAuth();
   const location = useLocation();
 
-  if (!accessToken) {
-    alert("You must be logged in to access this page.");
+  if (loading) {
+    return null;
+  }
 
+  if (!accessToken) {
     return (
       <Navigate
         to="/login"

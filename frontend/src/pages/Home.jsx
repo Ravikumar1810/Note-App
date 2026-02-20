@@ -19,7 +19,7 @@ export default function Home() {
         {/* CTA Buttons */}
         <div className="mt-10 flex justify-center gap-4">
           <Link
-            to="/signup"
+            to="/register"
             className="px-6 py-3 rounded-md bg-indigo-500 hover:bg-indigo-600 transition text-white"
           >
             Get Started

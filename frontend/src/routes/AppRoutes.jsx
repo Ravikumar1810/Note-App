@@ -6,24 +6,29 @@ import VerifyOtp from "../features/auth/VerifyOtp";
 import ForgotPassword from "../features/auth/ForgotPassword";
 import ResetPassword from "../features/auth/ResetPassword";
 import ProtectedRoute from "./ProtectedRoute";
+import Dashboard from "../pages/Dashboard";
+import PublicLayout from "../components/layout/PublicLayout";
+import DashboardLayout from "../components/dashboard/DashboardLayout";
+
 
 export default function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/signup" element={<Signup />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/verify-otp" element={<VerifyOtp />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <h1>Dashboard</h1>
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/" element={ <PublicLayout><Home /></PublicLayout>} />
+      <Route path="/register" element={<PublicLayout><Signup /></PublicLayout>} />
+      <Route path="/login" element={<PublicLayout><Login /></PublicLayout>} />
+      <Route path="/verify-otp" element={<PublicLayout><VerifyOtp /></PublicLayout>} />
+      <Route path="/forgetpassword" element={<PublicLayout><ForgotPassword /></PublicLayout>} />
+      <Route path="/resetpass" element={<PublicLayout><ResetPassword /></PublicLayout>} />
+
+
+      <Route path="/dashboard" element={
+        <ProtectedRoute>
+          <DashboardLayout>
+            <Dashboard />
+          </DashboardLayout>
+        </ProtectedRoute>
+      } /> 
     </Routes>
   );
 }

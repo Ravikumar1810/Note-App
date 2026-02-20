@@ -7,10 +7,25 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import AuthLayout from "../../components/layout/AuthLayout";
 import AuthSideImage from "../../components/layout/AuthSideImage";
 import { signupSchema, otpSchema } from "./signupSchema";
+import {
+  signupUser,
+  verifySignupOtp,
+  resendSignupOtp,
+} from "../../services/auth.api";
+import { setAccessToken } from "../../services/api";
+import { useAuth } from "../../app/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export default function Signup() {
   const [step, setStep] = useState("FORM"); // FORM | OTP
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState(null);
+  const [emailForOtp, setEmailForOtp] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const { login } = useAuth();
+  const[success,setSuccess] = useState(null);
+  const[otpLoading,setOtpLoading] = useState(false);
 
   // Signup form
   const {
@@ -30,16 +45,67 @@ export default function Signup() {
     resolver: zodResolver(otpSchema),
   });
 
-  const onSignupSubmit = (data) => {
-    console.log("SIGNUP DATA", data);
-    // later → send OTP API
-    setStep("OTP");
+  const onSignupSubmit = async (data) => {
+    setLoading(true);
+    setError(null);
+    console.log("Signup data:", data); // Debug log
+
+    try {
+      await signupUser(data);
+      setEmailForOtp(data.email);
+      setStep("OTP");
+    } catch (err) {
+      setError(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const onOtpSubmit = (data) => {
-    console.log("OTP DATA", data);
-    // later → verify OTP API
+
+  const onOtpSubmit = async (data) => {
+    setOtpLoading(true);
+    setError(null);
+    console.log("OTP data:", data); // Debug log
+
+    try {
+      const res = await verifySignupOtp({
+        email: emailForOtp,
+        enterotp: data.otp,
+      });
+      console.log("OTP verification response:", res) // Debug log
+
+      // 1️ Save token in axios memory
+      setAccessToken(res.accessToken);
+
+      // 2️ Save token in auth context
+      login({
+        token: res.accessToken,
+        user: res.user,
+      });
+      console.log("token is: " , res.accessToken)
+      console.log("user is: " , res.user)
+
+      // 3️ Navigate to dashboard
+      navigate("/dashboard");
+    } catch (err) {
+      setError(err?.response?.data?.message || "OTP verification failed. Please try again.");
+    } finally {
+      setOtpLoading(false);
+    }
   };
+
+const handleResendOtp = async () => {
+  setError(null);
+  setSuccess(null);
+
+  try {
+    await resendSignupOtp({ email: emailForOtp });
+    setSuccess("OTP resent successfully. Please check your email.");
+  } catch (err) {
+    setError(err);
+  }
+};
+
 
   return (
     <AuthLayout>
@@ -106,8 +172,12 @@ export default function Signup() {
                 )}
 
                 <button type="submit" className="auth-btn mb-4">
-                  Send OTP →
+                  {loading ? "Sending OTP..." : "Send OTP →"}
                 </button>
+
+                {error && (
+                  <p className="text-red-400 text-xs mb-4">{error.message}</p>
+                )}
               </form>
 
               <p className="text-sm text-gray-400 text-center">
@@ -129,6 +199,18 @@ export default function Signup() {
               </p>
 
               <form onSubmit={handleOtpSubmit(onOtpSubmit)}>
+                {success && (
+                  <p className="text-green-400 text-sm mb-4 text-center">
+                    {success}
+                  </p>
+                )}
+
+                {error && (
+                  <p className="text-red-400 text-sm mb-4 text-center">
+                    {error.message || error}
+                  </p>
+                )}
+
                 <input
                   {...registerOtp("otp")}
                   className="auth-input mb-2 text-center tracking-widest"
@@ -144,6 +226,14 @@ export default function Signup() {
                   Verify & Continue →
                 </button>
               </form>
+
+              <button
+              type="button"
+              onClick={handleResendOtp}
+              className="text-sm text-indigo-400 hover:underline w-full text-center mt-4"
+            >
+              Didn’t receive OTP? Resend
+            </button>
 
               <button
                 onClick={() => setStep("FORM")}

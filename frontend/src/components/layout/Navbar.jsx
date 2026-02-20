@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 
 export default function Navbar() {
   const { pathname } = useLocation();
-  const isAuthPage = pathname === "/signup" || pathname === "/login";
+  const isAuthPage = pathname === "/register" || pathname === "/login";
 
   
   return (
@@ -20,7 +20,7 @@ export default function Navbar() {
               Login
             </Link>
             <Link
-              to="/signup"
+              to="/register"
               className="px-4 py-2 bg-indigo-500 rounded-md text-white"
             >
               Sign up
