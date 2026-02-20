@@ -122,12 +122,12 @@ const verifyOtp = async (req, res) => {
 
       await OTP.deleteOne({ _id: otpdoc._id });
 
-      const isProd = process.env.NODE_ENV === "production";
+      // const isProd = process.env.NODE_ENV === "production";
 
         res.cookie("refreshtoken", refreshToken, {
         httpOnly: true,
-        secure: isProd,
-        sameSite: isProd ? "none" : "lax",
+        secure: true,
+        sameSite: "none",
         path: "/",
         maxAge: 24 * 60 * 60 * 1000, //1 Day
       });
