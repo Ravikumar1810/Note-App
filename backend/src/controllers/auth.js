@@ -3,25 +3,29 @@ const validator = require("email-validator");
 const bcrypt = require("bcrypt");
 const { genrateaccessToken, genraterefreshToken } = require("../utilites/token");
 const emailverfication = require("../nodemailer/sendEmail");
+require("dotenv").config();
+const jwt  =require("jsonwebtoken");
 const OTP = require("../models/otp");
+
+
 const register = async (req, res) => {
     try {
         const { username, email, password } = req.body;
-        // vaidation  
+
         if (!username || !email || !password) {
             return res.status(400).json({
                 success: false,
                 message: 'Pease fill all required fields'
             });
         }
-        // check the emmail formate  
+
         if (!validator.validate(email)) {
             return res.status(400).json({
                 success: false,
                 message: "Please write  correct email formate"
             });
         }
-        // check the  user exist or not  
+     
         const user = await User.findOne({ email });
         if (user) {
             return res.status(409).json({
@@ -29,30 +33,28 @@ const register = async (req, res) => {
                 message: 'email already exist .Please  do login'
             });
         }
-        // hash the  pass  
+    
         const hashpassword = await bcrypt.hash(password, 10);
-        //  create the  user and send the  user 
         const newuser = await User.create({
             username,
             email,
             password: hashpassword
         })
-        const genrateOtp = Math.floor(900000 + Math.random() * 100000).toString();
-        //  create the otp  
-        const otpdoc = await OTP.create({
+         await OTP.deleteMany({ userId: newuser._id });
+        const genrateOtp = Math.floor(100000 + Math.random() * 900000).toString(); 
+         await OTP.create({
             userId: newuser._id,
             otp: genrateOtp,
-            expiredAt: 5 * 60 * 1000
+            expiredAt: new Date(Date.now() + 5 * 60 * 1000),
+            purpose:'signup'
         });
         await emailverfication(email, genrateOtp);
-        //  creating the  user  
         return res.status(201).json({
             success: true,
             message: "User created successfully",
             data: {
                 username: newuser.username,
-                email: newuser.email,
-                otpdoc
+                email: newuser.email
             }
         });
     } catch (err) {
@@ -65,83 +67,120 @@ const register = async (req, res) => {
 }
 
 
-//  verfiy  otp  
 
-const  verifyOtp  =  async (req, res)=>{
-    try
-    {
-        const {email ,  enterotp} = req.body;
-        //  need both email  and  otp  
-        if(!email ||  !enterotp)
-        {
-            return res.status(400).json({
-                success:false,
-                messsage:"Please add both  email and  otp "
-            });
-        }
-        // find the  user exist or not 
-        const  user  =  await User.findOne({email});
-        if(!user)
-        {
-            return res.status(404).json({
-                success:false,
-                message:"user  not found"
-            });
-        }
-        // check the  otp  is correct  not expired  both are okay then  verify otp and delete it  
-        const  otpdoc  =  await OTP.findOne({userId:user._id});
-        if(!otpdoc)
-        {
-            return res.status(404).json({
-                success:false,
-                message:"Otp  not found"
-            });
-        }
-        // check  is it  expired or  not  
-        if(enterotp <=  otpdoc.expiredAt && enterotp === otpdoc.otp)
-        {
-                return res.status(400).json({
-                    success:false,
-                    message:"otp not matched  or  it expired  please check your  otp"
-                });
-        }
-        //  genrate the access token and refresh token  
-        const accessToken  =  genrateaccessToken(user);
-        const refreshToken = genraterefreshToken(user);
-             user.refreshtoken = refreshToken;
-             user.isVerified = true
-             await user.save();
-        //  if  evrything  is fine then  give the access  
-     await OTP.findOneAndDelete({userId:user._id});
-      
-         // send the refresh token  
-res.cookie("refreshtoken", refreshToken,{
-    httpOnly:true,
-    secure:false,
-    maxAge:24*60*60*1000
-})
-         return res.status(200).json({
-            success:true,
-            message:"User verified successfully",
-            accessToken
-         });
+const verifyOtp = async (req, res) => {
+  try {
+    const { email, enterotp } = req.body;
 
-    }catch(err)
-    {
-        return res.status(500).json({
-            success:false,
-            message:'Internal server error',
-            error:err.message
-        });
+    if (!email || !enterotp) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and OTP are required",
+      });
     }
-}
 
-//  login
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const otpdoc = await OTP.findOne({ userId: user._id });
+    if (!otpdoc) {
+      return res.status(404).json({
+        success: false,
+        message: "OTP not found or expired",
+      });
+    }
+
+    if (otpdoc.otp.toString() !== enterotp.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid OTP",
+      });
+    }
+
+    if (otpdoc.expiredAt < new Date()) {
+      await OTP.deleteOne({ _id: otpdoc._id });
+      return res.status(400).json({
+        success: false,
+        message: "OTP expired",
+      });
+    }
+
+    //  SIGNUP FLOW
+    if (otpdoc.purpose === "signup") {
+      user.isVerified = true;
+
+      const accessToken = genrateaccessToken(user);
+      const refreshToken = genraterefreshToken(user);
+
+      user.refreshtoken = refreshToken;
+      await user.save();
+
+      await OTP.deleteOne({ _id: otpdoc._id });
+
+      const isProd = process.env.NODE_ENV === "production";
+
+        res.cookie("refreshtoken", refreshToken, {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: isProd ? "none" : "lax",
+        path: "/",
+        maxAge: 24 * 60 * 60 * 1000, //1 Day
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "OTP verified successfully",
+        accessToken,
+        user: {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+        },
+      })
+    }
+
+    //  RESET PASSWORD FLOW (THIS WAS BUGGY BEFORE)
+    if (otpdoc.purpose === "reset") {
+      await OTP.deleteOne({ _id: otpdoc._id });
+
+      const resetToken = jwt.sign(
+        { userId: user._id, purpose: "reset" },
+        process.env.RESET_PASS,
+        { expiresIn: "10m" }
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: "OTP verified for password reset",
+        resetToken,
+          user: {
+            id: user._id,
+            username: user.username,
+            email: user.email,
+          },
+      });
+    }
+
+  } catch (err) {
+    console.error("Verify OTP Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+
 const  login   =  async (req, res)=>{
     try
     {
-const {email , password} =  req.body;
-// required  both  email and  password  
+    const {email , password} =  req.body;
+
     if(!email ||  !password)
     {
         return res.status(400).json({
@@ -149,24 +188,31 @@ const {email , password} =  req.body;
             message:"Please add both email and  password"
         });
     }
-    //  check the  email formate  
+
     if(!validator.validate(email))
     {
         return res.status(400).json({
-            sucess:false,
-            message:"Please check the  email formate"
+            success:false,
+            message:"Invalid email format"
         });
     }
-    //  check the  user exist or not  
+ 
     const existinguser = await  User.findOne({email});
     if(!existinguser)
     {
         return res.status(404).json({
             success:false,
-            message:"User not  found.Please do registration"
+            message:"User not found. Please register."
         });
     }
-    // before  giving the  access check the  password 
+
+    if(!existinguser.isVerified)
+    {
+        return res.status(403).json({
+            success:false,
+            message:"Please verify your email before login"
+        });
+    }
      const  ismatch  = await bcrypt.compare(password ,  existinguser.password);
         if(!ismatch)
         {
@@ -175,22 +221,27 @@ const {email , password} =  req.body;
                 message:"password  mismatched"
             });
         }
-            // if evrything is  okay then give the access 
         const accessToken  =  genrateaccessToken(existinguser);
-        const refreshTokn =  genraterefreshToken(existinguser);
-          existinguser.refreshtoken = refreshTokn
-          existinguser.isVerified = true
+        const refreshToken =  genraterefreshToken(existinguser);
+          existinguser.refreshtoken = refreshToken
           await existinguser.save();
     
-            res.cookie("refreshtoken", refreshTokn, {
+            res.cookie("refreshtoken", refreshToken, {
                 httpOnly:true,
                 secure:false,
+                sameSite:"lax",
+                path:"/",
                 maxAge:24 * 60 * 60 * 1000 
             })
           return res.status(200).json({
             success:true,
             message:'logged in successfully',
-            accessToken
+            accessToken,
+            user:{
+                id:existinguser._id,
+                username:existinguser.username,
+                email:existinguser.email
+            }
           });
     }catch(err)
     {
@@ -204,13 +255,317 @@ const {email , password} =  req.body;
 
 
 
-//  verify refresh token and  genrate the acess token  
+
+// resend the otp 
+const resendsignupotp = async (req, res)=>{
+
+    try{
+    const {email}  =  req.body;
+    if(!email || !validator.validate(email)){
+        return res.status(400).json({
+            success:false,
+            message:"Please check the email || Please check the email formate "
+        });
+    }
+
+
+  const existuser =  await User.findOne({email})
+
+  if(!existuser){
+    return res.status(400).json({
+        success:false,
+        message:"user not found "
+    })
+  }
+
+
+
+   if(existuser.isVerified){
+    return res.status(400).json({
+        success:false,
+        message:"User already verified. Please login"
+    })
+   }
+
+const otpdoc = await OTP.findOne({ userId: existuser._id });
   
+  if(otpdoc){
+     const now = Date.now();
+      const lastSent = otpdoc.createdAt.getTime();
+      const diffInSeconds = (now - lastSent) / 1000;
+    if(diffInSeconds <= 60){
+       return res.status(429).json({
+           success:false,
+           message:"Please wait 60 min to send the new request "
+       });
+    }
 
-// resend the  otp  
+      await OTP.deleteOne({ userId: existuser._id });
+  }
 
-// forget pass  
 
-//  
+const  genrateOtp = Math.floor(900000 + Math.random() * 100000).toString();
 
-module.exports = {register ,  login ,verifyOtp}
+
+await OTP.create({
+    userId:existuser._id,
+    otp:genrateOtp,
+    expiredAt: new Date( Date.now() + 5 * 60* 1000),
+    purpose:"signup"
+});
+
+  await emailverfication(email, genrateOtp);
+
+
+return res.status(200).json({
+    success:true,
+    message:"resend  otp send  successfully",
+    user: {
+        id: existuser._id,
+        username: existuser.username,
+        email: existuser.email,
+      },
+});
+    }catch(err){
+        return res.status(500).json({
+            success:false,
+            message:"Internal server error " ,
+            error:err.message
+        });
+    }
+}
+
+
+
+  
+const  verifyToken = async (req , res)=>{
+    try
+    {
+        const  headertoken  =  req.cookies?.refreshtoken;
+        
+  
+        if(!headertoken){
+            return res.status(401).json({
+                success:false,
+                message:"Token not found|| Please login "
+            });
+        }
+
+        const decode  = jwt.verify(headertoken , process.env.REFRESH_TOKEN);
+     
+         const user =  await User.findById(decode._id);
+            if (!user){
+            return res.status(404).json({
+                success:false,
+                message:"user not found"
+            }); 
+}
+ 
+    if(user.refreshtoken !== headertoken){
+        return res.status(401).json({
+            success:false,
+            message:"Refresh token mismatch. Please login again. "
+        })
+    }
+ const accessToken  = genrateaccessToken(user);
+    return res.status(200).json({
+      success: true,
+      accessToken,
+      user: {
+        _id: user._id,
+        email: user.email,
+        username: user.username,
+      }
+    });
+    }catch(err){
+        return res.status(500).json({
+            success:false,
+            message:"Internal server error",
+            error:err.message
+        });
+    }
+}
+
+
+// forget pass
+
+const  forgetPass  =  async (req, res)=>{
+
+    try{
+        const {email } = req.body;
+
+        if(!email )
+        {
+            return res.status(400).json({
+                success:false,
+                message:" please write email"
+            });
+        }
+    
+        const existuser = await User.findOne({email});
+        console.log("the user : " ,  existuser)
+        if(!existuser)
+        {
+            return res.status(404).json({
+                success:false,
+                message:"user not found"
+            });
+        }
+
+     
+         await OTP.deleteMany({userId:existuser._id})
+
+     const  genrateOtp = Math.floor(100000 + Math.random()*900000).toString();
+
+
+        await  OTP.create({
+            userId:existuser._id,
+            otp:genrateOtp,
+             expiredAt: new Date(Date.now() + 5 * 60 * 1000),
+             purpose:'reset'
+        })
+         await emailverfication(email , genrateOtp)
+         return res.status(200).json({
+            success:true,
+            message:"forget  password  otp send  successfully",
+         });
+    }catch(err)
+    {
+        return res.status(500).json({
+            success:false,
+            message:"Internal server error",
+            error:err.message
+        });
+    }
+}
+
+
+
+const resetpass = async (req, res) => {
+  try {
+    const { resetToken, newpassword, confirmpassword } = req.body;
+
+    if (!resetToken || !newpassword || !confirmpassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Reset token and both passwords are required"
+      });
+    }
+
+    if (newpassword !== confirmpassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Passwords do not match"
+      });
+    }
+
+    const decoded = jwt.verify(resetToken, process.env.RESET_PASS);
+
+    if (decoded.purpose !== "reset") {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid reset token"
+      });
+    }
+
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    const hashed = await bcrypt.hash(newpassword, 10);
+    user.password = hashed;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Password reset successfully. Please login.",
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email
+      }
+    });
+
+  } catch (err) {
+    return res.status(401).json({
+      success: false,
+      message: "Invalid or expired reset token",
+      error: err.message
+    });
+  }
+};
+
+
+
+
+const resendResetotp = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email || !validator.validate(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a valid email"
+      });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    const otpdocument = await OTP.findOne({ 
+      userId: user._id, 
+      purpose: "reset" 
+    });
+
+
+    if (otpdocument) {
+      const now = Date.now();
+      const lastSent = otpdocument.createdAt.getTime();
+      const diffInSeconds = (now - lastSent) / 1000;
+
+      if (diffInSeconds < 60) {
+        return res.status(429).json({
+          success: false,
+          message: "Please wait before requesting a new reset OTP"
+        });
+      }
+
+      await OTP.deleteOne({ userId: user._id, purpose: "reset" });
+    }
+
+    const genrateotp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    await OTP.create({
+      userId: user._id,
+      otp: genrateotp,
+      expiredAt: new Date(Date.now() + 5 * 60 * 1000),
+      purpose: "reset"
+    });
+
+    await emailverfication(email, genrateotp);
+
+    return res.status(200).json({
+      success: true,
+      message: "Reset OTP sent successfully"
+    });
+
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: err.message
+    });
+  }
+};
+
+
+module.exports = {register ,  login ,verifyOtp, resendsignupotp, verifyToken, forgetPass, resetpass ,  resendResetotp }

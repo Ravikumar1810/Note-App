@@ -20,10 +20,10 @@ const  userSchema  = new mongoose.Schema({
         type:Boolean,
         default:false
     },
-    refreshtoken:{
-        type:String,
-        default:''
-    }
+   refreshtoken:{
+    type:String,
+    default:''
+   }
 })
 
 

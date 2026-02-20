@@ -1,30 +1,40 @@
 const User    =  require("../models/user");
 const jwt =  require("jsonwebtoken");
-//  here i need to write the  route which is  take  and token check weather  user  verifyed or  not  
+
 
 const verifyuser = async (req,  res , next)=>{
     try
     {
-     const headertoken =  req.headers.authorization;
-        if(!headertoken && !headertoken.startsWith("Bearer "))
+      const header =  req.headers.authorization;
+      
+        if(!header ||!header.startsWith("Bearer "))
         {
-            return res.status(401).json({
+            return res.status(403).json({
                 success:false,
-                message:"Unathorized user. token  not  found"
+                message: "forbidden  access  Please  login || unathorized user    "
             });
         }
 
-    const token  =  headertoken.split(" ")[0];
-    // token  verification  
-    const  verifytoken  =  jwt.verify(token , process.env.JWT_TOKEN);
-        if(!verifytoken)
-        {
-            return res.status(404).json({
+        const token  =  header.split(" ")[1];
+         const decode = jwt.verify(token, process.env.JWT_TOKEN);
+         if(!decode){
+            return res.status(401).json({
                 success:false,
-                message:"token  not  matched "
+                message:"failed to verify the token"
             });
-        }
-        next();
+         }
+          
+  const user  =  await User.findById(decode._id)
+
+  if(!user){
+    return res.status(404).json({
+        success:false,
+        message:"User not found "
+    });
+  }
+  
+  req.user = user;
+  next ();
     }catch(err)
     {
         return res.status(500).json({
@@ -34,7 +44,5 @@ const verifyuser = async (req,  res , next)=>{
         });
     }
 }  
-
-
 
 module.exports = verifyuser;
