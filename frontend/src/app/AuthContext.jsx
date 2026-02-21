@@ -14,9 +14,11 @@ export const AuthProvider = ({ children }) => {
       try {
         const res = await api.post("/verifyToken");
           setAccessToken(res.data.accessToken);
-          setToken(res.data.accessToken);
-          setUser(res.data.user || null);
-      } catch (err) {  
+          // setToken(res.data.accessToken);
+          setUser(res.data.user);
+      } catch (err) { 
+        setAccessToken(null);
+        setUser(null);
       } finally {
         setLoading(false);
       }
