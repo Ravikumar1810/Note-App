@@ -4,7 +4,7 @@ import api, { setAccessToken } from "../services/api";
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [accessToken, setToken] = useState(null);
+  // const [accessToken, setToken] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -22,7 +22,6 @@ useEffect(() => {
       setUser(res.data.user);
     } catch (err) {
       setUser(null);
-      console.log("Verify token failed", err.response?.status); 
     } finally {
       setLoading(false);
     }
@@ -35,14 +34,11 @@ useEffect(() => {
 
   const login = ({ token, user }) => {
     setAccessToken(token);
-    setToken(token);
     setUser(user);
-    setLoading(false);
   };
 
   const logout = () => {
     setAccessToken(null);
-    setToken(null);
     setUser(null);
     window.location.href = "/login";
   };
