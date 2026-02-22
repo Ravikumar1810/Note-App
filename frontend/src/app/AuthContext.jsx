@@ -22,6 +22,7 @@ useEffect(() => {
       setUser(res.data.user);
     } catch (err) {
       setUser(null);
+      console.log("Verify token failed", err.response?.status); 
     } finally {
       setLoading(false);
     }
@@ -34,11 +35,14 @@ useEffect(() => {
 
   const login = ({ token, user }) => {
     setAccessToken(token);
+    setToken(token);
     setUser(user);
+    setLoading(false);
   };
 
   const logout = () => {
     setAccessToken(null);
+    setToken(null);
     setUser(null);
     window.location.href = "/login";
   };
