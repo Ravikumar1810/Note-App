@@ -2,7 +2,7 @@ import axios from "axios";
 import { refreshToken } from "./auth.api";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_API_BASE_URL || "http://localhost:9000/api",
+  baseURL: import.meta.env.VITE_API_BASE_URL,
   withCredentials: true, 
   timeout: 10000,
 });

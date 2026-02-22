@@ -12,19 +12,10 @@ connectDB();
 app.set("trust proxy", 1);
 
 app.use(cors({
-  origin: (origin, callback) => {
-    const allowedOrigins = [
-      "https://note-app-roan-five.vercel.app"
-    ];
-
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
+  origin: "https://note-app-roan-five.vercel.app",
   credentials: true,
 }));
+
 
 
 app.use(express.json());
