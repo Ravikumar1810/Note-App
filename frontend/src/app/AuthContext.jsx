@@ -11,11 +11,19 @@ export const AuthProvider = ({ children }) => {
 useEffect(() => {
   const initAuth = async () => {
     try {
+      //  Only attempt verifyToken if cookies exist
+      if (!document.cookie.includes("refreshtoken")) {
+        setLoading(false);
+        return;
+      }
+
       const res = await api.post("/verifyToken");
       setAccessToken(res.data.accessToken);
       setUser(res.data.user);
-    } catch {
-
+    } catch (err) {
+      // Silent fail — NOT an error
+      setAccessToken(null);
+      setUser(null);
     } finally {
       setLoading(false);
     }
@@ -23,6 +31,7 @@ useEffect(() => {
 
   initAuth();
 }, []);
+
 
 
   const login = ({ token, user }) => {
