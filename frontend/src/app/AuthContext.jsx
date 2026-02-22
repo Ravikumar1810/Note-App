@@ -31,7 +31,6 @@ export const AuthProvider = ({ children }) => {
     setToken(token);
     setUser(user || null);
     setLoading(false);
-    console.log("User logged in:", { token, user }); // Debug log
   };
 
   const logout = () => {

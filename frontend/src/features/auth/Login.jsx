@@ -33,9 +33,8 @@ export default function Login() {
 
     try {
       const res = await loginUser(data);
-      console.log("Login successful:", res); // Debug log
 
-      // 1️⃣ Save to auth context
+      // 1 Save to auth context
       login({
         token: res.accessToken,
         user: res.user,
@@ -43,10 +42,10 @@ export default function Login() {
       console.log("token is: " , res.accessToken)
       console.log("user is: " , res.user)
 
-      // 2️⃣ Attach token to axios
+      // 2️ Attach token to axios
       setAccessToken(res.accessToken);
 
-      // 3️⃣ Redirect to dashboard
+      // 3️ Redirect to dashboard
       navigate("/dashboard");
     } catch (err) {
       setError(err?.response?.data?.message || "An error occurred. Please try again.");

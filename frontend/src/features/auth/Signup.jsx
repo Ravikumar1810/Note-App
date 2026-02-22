@@ -48,7 +48,6 @@ export default function Signup() {
   const onSignupSubmit = async (data) => {
     setLoading(true);
     setError(null);
-    console.log("Signup data:", data); // Debug log
 
     try {
       await signupUser(data);
@@ -65,14 +64,12 @@ export default function Signup() {
   const onOtpSubmit = async (data) => {
     setOtpLoading(true);
     setError(null);
-    console.log("OTP data:", data); // Debug log
 
     try {
       const res = await verifySignupOtp({
         email: emailForOtp,
         enterotp: data.otp,
       });
-      console.log("OTP verification response:", res) // Debug log
 
       // 1️ Save token in axios memory
       setAccessToken(res.accessToken);

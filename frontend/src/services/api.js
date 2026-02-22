@@ -48,10 +48,8 @@ api.interceptors.response.use(
 
       try {
         const res = await api.post("/verifyToken");
-        console.log("Token refreshed:", res.data); // Debug log
 
         const newAccessToken = res.data.accessToken;
-        console.log("New access token:", newAccessToken); // Debug log
 
 
         // update header
