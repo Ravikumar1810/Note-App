@@ -51,6 +51,8 @@ api.interceptors.response.use(
 
         const newAccessToken = res.data.accessToken;
 
+        setAccessToken(newAccessToken);
+
 
         // update header
         originalRequest.headers.Authorization =

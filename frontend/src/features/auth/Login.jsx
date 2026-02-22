@@ -39,8 +39,6 @@ export default function Login() {
         token: res.accessToken,
         user: res.user,
       });
-      console.log("token is: " , res.accessToken)
-      console.log("user is: " , res.user)
 
       // 2️ Attach token to axios
       setAccessToken(res.accessToken);

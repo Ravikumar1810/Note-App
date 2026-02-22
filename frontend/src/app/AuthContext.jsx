@@ -9,27 +9,38 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const initAuth = async () => {
+    let mounted = true;
 
+    const initAuth = async () => {
       try {
         const res = await api.post("/verifyToken");
-          setAccessToken(res.data.accessToken);
-          // setToken(res.data.accessToken);
-          setUser(res.data.user);
-      } catch (err) { 
+
+        if (!mounted) return;
+
+        setAccessToken(res.data.accessToken);
+        setToken(res.data.accessToken);
+        setUser(res.data.user || null);
+      } catch (err) {
+        if (!mounted) return;
         setAccessToken(null);
+        setToken(null);
         setUser(null);
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
+
     initAuth();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const login = ({ token, user }) => {
     setAccessToken(token);
     setToken(token);
-    setUser(user || null);
+    setUser(user);
     setLoading(false);
   };
 
@@ -37,13 +48,11 @@ export const AuthProvider = ({ children }) => {
     setAccessToken(null);
     setToken(null);
     setUser(null);
-    window.location.href="/login"
+    window.location.href = "/login";
   };
 
   return (
-    <AuthContext.Provider
-      value={{ accessToken, user, login, logout, loading }}
-    >
+    <AuthContext.Provider value={{ accessToken, user, login, logout, loading }}>
       {!loading && children}
     </AuthContext.Provider>
   );
