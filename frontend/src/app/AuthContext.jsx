@@ -21,9 +21,8 @@ useEffect(() => {
       setAccessToken(res.data.accessToken);
       setUser(res.data.user);
     } catch (err) {
-      // Silent fail — NOT an error
-      setAccessToken(null);
       setUser(null);
+      console.log("Verify token failed", err.response?.status); 
     } finally {
       setLoading(false);
     }
