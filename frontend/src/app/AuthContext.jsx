@@ -8,34 +8,22 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let mounted = true;
+useEffect(() => {
+  const initAuth = async () => {
+    try {
+      const res = await api.post("/verifyToken");
+      setAccessToken(res.data.accessToken);
+      setUser(res.data.user);
+    } catch {
 
-    const initAuth = async () => {
-      try {
-        const res = await api.post("/verifyToken");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        if (!mounted) return;
+  initAuth();
+}, []);
 
-        setAccessToken(res.data.accessToken);
-        setToken(res.data.accessToken);
-        setUser(res.data.user || null);
-      } catch (err) {
-        if (!mounted) return;
-        setAccessToken(null);
-        setToken(null);
-        setUser(null);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-
-    initAuth();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   const login = ({ token, user }) => {
     setAccessToken(token);
