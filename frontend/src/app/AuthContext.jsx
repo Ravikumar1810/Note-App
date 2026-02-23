@@ -4,46 +4,33 @@ import api, { setAccessToken } from "../services/api";
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  // const [accessToken, setToken] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-useEffect(() => {
-  const initAuth = async () => {
-    try {
-      //  Only attempt verifyToken if cookies exist
-      if (!document.cookie.includes("refreshtoken")) {
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        const res = await api.post("/verifyToken"); // cookie auto sent
+        setAccessToken(res.data.accessToken);
+        setUser(res.data.user);
+      } catch (err) {
+        setUser(null);
+      } finally {
         setLoading(false);
-        return;
       }
+    };
 
-      const res = await api.post("/verifyToken");
-      setAccessToken(res.data.accessToken);
-      setUser(res.data.user);
-    } catch (err) {
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  initAuth();
-}, []);
-
-
+    initAuth();
+  }, []);
 
   const login = ({ token, user }) => {
     setAccessToken(token);
-    // setToken(token);
     setUser(user);
-    // setLoading(false);
   };
 
   const logout = async () => {
     try {
       await api.post("/logout");
-    } catch (err) {
-      console.error("Logout error:", err);
     } finally {
       setAccessToken(null);
       setUser(null);
@@ -52,8 +39,8 @@ useEffect(() => {
   };
 
   return (
-    <AuthContext.Provider value={{ accessToken, user, login, logout, loading }}>
-      {loading ?<div className="text-white">Loading... </div> : children}
+    <AuthContext.Provider value={{ user, login, logout, loading }}>
+      {loading ? <div className="text-white">Loading...</div> : children}
     </AuthContext.Provider>
   );
 };
