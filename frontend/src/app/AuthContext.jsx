@@ -22,7 +22,7 @@ useEffect(() => {
       setUser(res.data.user);
     } catch (err) {
       setUser(null);
-      console.log("Verify token failed", err.response?.status); 
+    
     } finally {
       setLoading(false);
     }
@@ -48,7 +48,7 @@ useEffect(() => {
   };
 
   return (
-    <AuthContext.Provider value={{ accessToken, user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, loading }}>
       {!loading && children}
     </AuthContext.Provider>
   );
