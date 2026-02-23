@@ -10,7 +10,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const res = await api.post("/verifyToken"); // cookie auto sent
+        const res = await api.post("/verifyToken");
         setAccessToken(res.data.accessToken);
         setUser(res.data.user);
       } catch (err) {
