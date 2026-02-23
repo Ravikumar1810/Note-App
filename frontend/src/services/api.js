@@ -1,4 +1,5 @@
 import axios from "axios";
+import { refreshToken } from "./auth.api";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
@@ -22,6 +23,50 @@ api.interceptors.request.use(
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    //  Don't retry for refresh token
+    if (
+      error.response?.status === 401 &&
+      originalRequest.url.includes("/verifyToken") // this  line 
+    ) {
+      return Promise.reject(error);
+    }
+
+    //  Retry once for other APIs
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry
+    ) 
+    {
+      originalRequest._retry = true;
+
+      try {
+        const res = await api.post("/verifyToken");
+
+        const newAccessToken = res.data.accessToken;
+
+        setAccessToken(newAccessToken);
+
+
+        // update header
+        originalRequest.headers.Authorization =
+          `Bearer ${newAccessToken}`;
+
+        return api(originalRequest);
+      } catch (err) {
+        return Promise.reject(err);
+      }
+    }
+
+    return Promise.reject(error);
+  }
 );
 
 

@@ -228,8 +228,8 @@ const  login   =  async (req, res)=>{
     
             res.cookie("refreshtoken", refreshToken, {
                 httpOnly:true,
-                secure:false,
-                sameSite:"lax",
+                secure:true,
+                sameSite:"none",
                 path:"/",
                 maxAge:24 * 60 * 60 * 1000 
             })
@@ -342,8 +342,6 @@ const  verifyToken = async (req , res)=>{
     try
     {
         const headertoken = req.cookies?.refreshtoken;
-        
-  
         if(!headertoken){
             return res.status(401).json({
                 success:false,
