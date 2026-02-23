@@ -21,6 +21,7 @@ useEffect(() => {
       setAccessToken(res.data.accessToken);
       setUser(res.data.user);
     } catch (err) {
+      setUser(null);
     } finally {
       setLoading(false);
     }
@@ -33,21 +34,26 @@ useEffect(() => {
 
   const login = ({ token, user }) => {
     setAccessToken(token);
-    setToken(token);
+    // setToken(token);
     setUser(user);
-    setLoading(false);
+    // setLoading(false);
   };
 
-  const logout = () => {
-    setAccessToken(null);
-    setToken(null);
-    setUser(null);
-    window.location.href = "/login";
+  const logout = async () => {
+    try {
+      await api.post("/logout");
+    } catch (err) {
+      console.error("Logout error:", err);
+    } finally {
+      setAccessToken(null);
+      setUser(null);
+      window.location.href = "/login";
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
-      {!loading && children}
+    <AuthContext.Provider value={{ accessToken, user, login, logout, loading }}>
+      {loading ?<div className="text-white">Loading... </div> : children}
     </AuthContext.Provider>
   );
 };
