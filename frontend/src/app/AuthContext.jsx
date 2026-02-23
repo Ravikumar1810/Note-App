@@ -21,8 +21,6 @@ useEffect(() => {
       setAccessToken(res.data.accessToken);
       setUser(res.data.user);
     } catch (err) {
-      setUser(null);
-      setAccessToken(null);
     } finally {
       setLoading(false);
     }
