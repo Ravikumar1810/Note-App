@@ -6,7 +6,7 @@ export default function ProtectedRoute({ children }) {
   const location = useLocation();
 
   if (loading) {
-    return null;
+    return <div className="text-white">Loading...</div>;
   }
 
   if (!user) {
@@ -14,7 +14,7 @@ export default function ProtectedRoute({ children }) {
       <Navigate
         to="/login"
         replace
-        state={{ from: location }}
+        // state={{ from: location }}
       />
     );
   }
