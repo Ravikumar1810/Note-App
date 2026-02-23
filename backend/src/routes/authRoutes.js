@@ -1,6 +1,6 @@
 const  express =  require("express");
 const router  =  express.Router();
-const {register ,  login ,verifyOtp, resendsignupotp, verifyToken, forgetPass, resetpass ,  resendResetotp } = require("../controllers/auth")
+const {register ,  login ,verifyOtp, resendsignupotp, verifyToken, forgetPass, resetpass ,  resendResetotp , logout} = require("../controllers/auth")
 const  verifyuser =  require("../middlewares/verifyRoutes");
 
 
@@ -11,6 +11,7 @@ router.post('/forgetpassword' ,forgetPass)
 router.post('/resendsignupotp' , resendsignupotp)
 router.post('/resetpass' , resetpass)
 router.post('/resendResetotp' , resendResetotp)
+router.post('/logout' ,  verifyuser, logout);
 router.post('/verifyToken', verifyToken)
 
 router.get('/home', verifyuser , (req, res)=>{

@@ -566,4 +566,40 @@ const resendResetotp = async (req, res) => {
 };
 
 
-module.exports = {register ,  login ,verifyOtp, resendsignupotp, verifyToken, forgetPass, resetpass ,  resendResetotp }
+// logut  
+
+const logout = async (req, res) => {
+  try {
+    const userId = req.user?._id || req._id;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized"
+      });
+    }
+
+    await User.findByIdAndUpdate(userId, { refreshtoken: null });
+
+    // ✅ CLEAR THE COOKIE
+    res.clearCookie("refreshtoken", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      path: "/"
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Logged out successfully"
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: err.message
+    });
+  }
+};
+
+module.exports = {register ,  login ,verifyOtp, resendsignupotp, verifyToken, forgetPass, resetpass ,  resendResetotp ,logout}; 
